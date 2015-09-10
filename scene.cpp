@@ -7,7 +7,7 @@
 
 namespace
 {
-    const float eps = 0.00001;
+    const float eps = 0.00001f;
 }
 
 
@@ -46,7 +46,7 @@ std::vector<Scene::Surface> Scene::surfaces() const
     std::vector<PointData> points;
 
     // add all (Point, PointFacetIndex) pairs to array
-    for (int i = 0; i < m_facets.size(); ++i) {
+    for (size_t i = 0; i < m_facets.size(); ++i) {
         const Triangle &tr = m_facets[i].triangle;
         points.push_back(std::make_pair(tr.p1, i));
         points.push_back(std::make_pair(tr.p2, i));
@@ -64,8 +64,8 @@ std::vector<Scene::Surface> Scene::surfaces() const
     // graph represented using adjacency list
     std::vector<std::vector<int>> facetsConnectivityGraph(m_facets.size(), std::vector<int>());
 
-    for (int i = 0; i + 1 < points.size(); ++i) {
-        for (int j = i + 1; j < points.size(); ++j) {
+    for (size_t i = 0; i + 1 < points.size(); ++i) {
+        for (size_t j = i + 1; j < points.size(); ++j) {
             if (fabs(points[i].first.x - points[j].first.x) >= eps)
                 break;
 
@@ -80,7 +80,7 @@ std::vector<Scene::Surface> Scene::surfaces() const
 
     // breadth-first connectivity components search
     std::vector<bool> used(m_facets.size(), false);
-    for (int i = 0; i < used.size(); ++i) {
+    for (size_t i = 0; i < used.size(); ++i) {
         if (used[i])
             continue;
 
@@ -95,7 +95,7 @@ std::vector<Scene::Surface> Scene::surfaces() const
 
             surface.push_back(m_facets[currFacetIndex]);
 
-            for (int j = 0; j < facetsConnectivityGraph[currFacetIndex].size(); ++j) {
+            for (size_t j = 0; j < facetsConnectivityGraph[currFacetIndex].size(); ++j) {
                 const int otherVertexIndex = facetsConnectivityGraph[currFacetIndex][j];
                 if (!used[otherVertexIndex]) {
                     facetsQueue.push(otherVertexIndex);

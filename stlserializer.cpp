@@ -14,18 +14,18 @@ namespace
     {
         std::vector<std::string> tokens;
 
-        int prev = -1;
+        size_t prev = 0;
 
-        for (int i = 0; i < str.size(); ++i) {
+        for (size_t i = 0; i < str.size(); ++i) {
             if (str[i] == ' ') {
-                if (i > prev + 1)
-                    tokens.push_back(str.substr(prev + 1, i - prev - 1));
-                prev = i;
+                if (i > prev)
+                    tokens.push_back(str.substr(prev, i - prev));
+                prev = i + 1;
             }
         }
 
-        if (prev + 1 < str.size())
-            tokens.push_back(str.substr(prev + 1, str.size() - prev - 1));
+        if (prev < str.size())
+            tokens.push_back(str.substr(prev, str.size() - prev));
 
         return tokens;
     }

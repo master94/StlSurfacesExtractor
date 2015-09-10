@@ -46,7 +46,7 @@ void Vector3D::applyTransform(const TransformMatrix &mat)
 
 float Vector3D::distance(const Vector3D &v1, const Vector3D &v2)
 {
-    return pow(pow(v1.x - v2.x, 2) + pow(v1.y - v2.y, 2) + pow(v1.z - v2.z, 2), 0.5);
+    return powf(powf(v1.x - v2.x, 2) + powf(v1.y - v2.y, 2) + powf(v1.z - v2.z, 2), 0.5);
 }
 
 Vector3D Vector3D::min(const Vector3D &v1, const Vector3D &v2)
