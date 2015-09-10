@@ -13,11 +13,17 @@ public:
     void serializeFrom(std::istream &stream, Scene &scene) throw (BadFormatException, UnexpectedEofException, CantReadException);
 
 private:
-    void readSolid(std::istream &stream, Scene &scene);
-    void readFacet(std::istream &stream, Facet &facet);
-    void readNormale(std::istream &stream, Vector3D &normale);
-    void readTriangle(std::istream &stream, Triangle &triangle);
-    void readVertex(std::istream &stream, Vector3D &vertex);
+    std::istream *m_inputStream;
+    std::string m_lineBuffer;
+
+    std::string checkedRead();
+    std::string peekLine() const;
+
+    void readSolid(Scene &scene);
+    void readFacet(Facet &facet);
+    void readNormale(Vector3D &normale);
+    void readTriangle(Triangle &triangle);
+    void readVertex(Vector3D &vertex);
 
     void writeSolid(std::ostream &stream, const Scene &scene);
     void writeFacet(std::ostream &stream, const Facet &facet);

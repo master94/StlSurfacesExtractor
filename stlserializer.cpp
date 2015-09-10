@@ -1,11 +1,7 @@
 #include "stlserializer.h"
 
-#include <iostream>
 #include <sstream>
-
-#define CHECKED_READ(stream, line) std::getline(stream, line);\
-    if (stream.eof()) throw UnexpectedEofException();\
-    if (stream.fail() || stream.bad()) throw CantReadException();
+#include <cassert>
 
 #define ASSERT_FORMAT_EXPR(expr, message) if (!(expr))\
     throw BadFormatException(message);
@@ -39,15 +35,6 @@ namespace
         return !(std::istringstream(str) >> value).fail();
     }
 
-    std::string peekLine(std::istream &stream)
-    {
-        const auto pos = stream.tellg();
-        std::string line;
-        std::getline(stream, line);
-        stream.seekg(pos);
-        return line;
-    }
-
     const std::string cSolidStartMarker = "solid";
     const std::string cSolidEndMarker = "endsolid";
     const std::string cFacetStartMarker = "facet";
@@ -60,6 +47,7 @@ namespace
 
 
 StlSerializer::StlSerializer()
+    : m_inputStream(nullptr)
 {
 }
 
@@ -70,56 +58,67 @@ void StlSerializer::serializeTo(std::ostream &stream, const Scene &scene) throw 
 
 void StlSerializer::serializeFrom(std::istream &stream, Scene &scene) throw (BadFormatException, UnexpectedEofException, CantReadException)
 {
-    readSolid(stream, scene);
+    m_inputStream = &stream;
+    checkedRead(); // initialize buffer
+    readSolid(scene);
+    m_inputStream = nullptr;
 }
 
-void StlSerializer::readSolid(std::istream &stream, Scene &scene)
+std::string StlSerializer::checkedRead()
 {
-    std::string line;
-    CHECKED_READ(stream, line);
+    assert(m_inputStream != nullptr && "Input stream must not be NULL");
 
-    std::vector<std::string> tokens = split(line);
+    if (m_inputStream->eof())
+        throw UnexpectedEofException();
+
+    if (m_inputStream->fail() || m_inputStream->bad())
+        throw CantReadException();
+
+    const std::string tmpLine = m_lineBuffer;
+    std::getline(*m_inputStream, m_lineBuffer);
+    return tmpLine;
+}
+
+std::string StlSerializer::peekLine() const
+{
+    return m_lineBuffer;
+}
+
+void StlSerializer::readSolid(Scene &scene)
+{
+    std::vector<std::string> tokens = split(checkedRead());
     ASSERT_FORMAT_EXPR(tokens.size() == 1 || tokens.size() == 2, "Wrong tokens qty for SOLID header.");
     ASSERT_FORMAT_TOKEN(tokens[0], cSolidStartMarker, "Wrong token for SOLID header.");
 
     if (tokens.size() == 2)
         scene.setName(tokens[1]);
 
-    while (peekLine(stream) != cSolidEndMarker) {
+    while (peekLine() != cSolidEndMarker) {
         Facet facet;
-        readFacet(stream, facet);
+        readFacet(facet);
         scene.addFacet(facet);
     }
 
-    CHECKED_READ(stream, line);
-    tokens = split(line);
+    tokens = split(checkedRead());
     ASSERT_FORMAT_EXPR(tokens.size() == 1 || tokens.size() == 2, "Wrong tokens qty for SOLID end.");
     ASSERT_FORMAT_TOKEN(tokens[0], cSolidEndMarker, "Wrong token for SOLID end.");
 }
 
-void StlSerializer::readFacet(std::istream &stream, Facet &facet)
+void StlSerializer::readFacet(Facet &facet)
 {
-    readNormale(stream, facet.normal);
+    readNormale(facet.normal);
 
-    std::string line;
-    CHECKED_READ(stream, line);
-    ASSERT_FORMAT_TOKEN(line, cOuterLoopStartMarker, "Wrong token for vertices loop start.");
+    ASSERT_FORMAT_TOKEN(checkedRead(), cOuterLoopStartMarker, "Wrong token for vertices loop start.");
 
-    readTriangle(stream, facet.triangle);
+    readTriangle(facet.triangle);
 
-    CHECKED_READ(stream, line);
-    ASSERT_FORMAT_TOKEN(line, cOuterLoopEndMarker, "Wrong token for vertices end.");
-
-    CHECKED_READ(stream, line);
-    ASSERT_FORMAT_TOKEN(line, cFacetEndMarker, "Wrong token for facet end.");
+    ASSERT_FORMAT_TOKEN(checkedRead(), cOuterLoopEndMarker, "Wrong token for vertices end.");
+    ASSERT_FORMAT_TOKEN(checkedRead(), cFacetEndMarker, "Wrong token for facet end.");
 }
 
-void StlSerializer::readNormale(std::istream &stream, Vector3D &normale)
+void StlSerializer::readNormale(Vector3D &normale)
 {
-    std::string line;
-    CHECKED_READ(stream, line);
-
-    const std::vector<std::string> tokens = split(line);
+    const std::vector<std::string> tokens = split(checkedRead());
     ASSERT_FORMAT_EXPR(tokens.size() == 5, "Wrong tokens qty for facet begin.");
 
     ASSERT_FORMAT_TOKEN(tokens[0], cFacetStartMarker, "Wrong token for facet.");
@@ -130,19 +129,16 @@ void StlSerializer::readNormale(std::istream &stream, Vector3D &normale)
     ASSERT_FORMAT_EXPR(from_string(normale.z, tokens[4]), "Can't parse normal Z-value.");
 }
 
-void StlSerializer::readTriangle(std::istream &stream, Triangle &triangle)
+void StlSerializer::readTriangle(Triangle &triangle)
 {
-    readVertex(stream, triangle.p1);
-    readVertex(stream, triangle.p2);
-    readVertex(stream, triangle.p3);
+    readVertex(triangle.p1);
+    readVertex(triangle.p2);
+    readVertex(triangle.p3);
 }
 
-void StlSerializer::readVertex(std::istream &stream, Vector3D &vertex)
+void StlSerializer::readVertex(Vector3D &vertex)
 {
-    std::string line;
-    CHECKED_READ(stream, line);
-
-    const std::vector<std::string> tokens = split(line);
+    const std::vector<std::string> tokens = split(checkedRead());
     ASSERT_FORMAT_EXPR(tokens.size() == 4, "Wrong tokens qty for vertex.");
     ASSERT_FORMAT_TOKEN(tokens[0], cVertexMarker, "Wrong token for vertex.");
 
