@@ -21,7 +21,9 @@ void printParseException(const std::string &filename, const std::string &error)
 
 std::string buildOutputFilePath(const std::string &folder, int partIndex)
 {
-    return (std::ostringstream() << folder << "/" << "part_" << partIndex << ".stl").str();
+    std::ostringstream ss;
+    ss << folder << "/" << "part_" << partIndex << ".stl";
+    return ss.str();
 }
 
 
